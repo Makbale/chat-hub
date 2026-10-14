@@ -1,53 +1,35 @@
-const CACHE_NAME = 'chathub-v2';
-const URLS_TO_CACHE = [
-  './',
-  './index.html',
-  './manifest.json'
-];
+const CACHE_NAME = 'chathub-v3';
+const URLS = ['./', './index.html', './manifest.json'];
 
-// Install - cache files
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(URLS_TO_CACHE);
-    })
-  );
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(URLS)));
   self.skipWaiting();
 });
 
-// Activate - clean old caches
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(names => {
-      return Promise.all(
-        names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n))
-      );
-    })
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(names =>
+      Promise.all(names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n)))
+    )
   );
   self.clients.claim();
 });
 
-// Fetch - serve from cache, fallback to network
-self.addEventListener('fetch', event => {
-  // Only cache GET requests to same origin
-  if (event.request.method !== 'GET') return;
-  
-  const url = new URL(event.request.url);
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
   if (url.origin !== location.origin) return;
 
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      const fetchPromise = fetch(event.request).then(response => {
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, clone);
-          });
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      const fetchP = fetch(e.request).then(res => {
+        if (res && res.status === 200) {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
         }
-        return response;
+        return res;
       }).catch(() => cached);
-      
-      return cached || fetchPromise;
+      return cached || fetchP;
     })
   );
 });
