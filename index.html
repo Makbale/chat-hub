@@ -351,15 +351,43 @@
   };
 
   // ===== Apps =====
-  const apps = [
-    { id: 'telegram', icon: '✈️', cls: 'telegram', url: 'https://web.telegram.org/k/' },
-    { id: 'instagram', icon: '📷', cls: 'instagram', url: 'https://www.instagram.com/direct/inbox/' },
-    { id: 'whatsapp', icon: '💚', cls: 'whatsapp', url: 'https://web.whatsapp.com' },
-    { id: 'messenger', icon: '💬', cls: 'messenger', url: 'https://www.messenger.com' },
-    { id: 'tiktok', icon: '🎵', cls: 'tiktok', url: 'https://www.tiktok.com/messages' },
-    { id: 'youtube', icon: '▶️', cls: 'youtube', url: 'https://m.youtube.com' },
-    { id: 'twitter', icon: '𝕏', cls: 'twitter', url: 'https://twitter.com/messages' }
-  ];
+const apps = [
+  { 
+    id: 'telegram', icon: '✈️', cls: 'telegram', 
+    package: 'org.telegram.messenger', scheme: 'tg',
+    url: 'https://web.telegram.org/k/'
+  },
+  { 
+    id: 'instagram', icon: '📷', cls: 'instagram', 
+    package: 'com.instagram.android', scheme: 'instagram',
+    url: 'https://www.instagram.com/direct/inbox/'
+  },
+  { 
+    id: 'whatsapp', icon: '💚', cls: 'whatsapp', 
+    package: 'com.whatsapp', scheme: 'whatsapp',
+    url: 'https://web.whatsapp.com'
+  },
+  { 
+    id: 'messenger', icon: '💬', cls: 'messenger', 
+    package: 'com.facebook.orca', scheme: 'fb-messenger',
+    url: 'https://www.messenger.com'
+  },
+  { 
+    id: 'tiktok', icon: '🎵', cls: 'tiktok', 
+    package: 'com.zhiliaoapp.musically', scheme: 'snssdk1233',
+    url: 'https://www.tiktok.com/messages'
+  },
+  { 
+    id: 'youtube', icon: '▶️', cls: 'youtube', 
+    package: 'com.google.android.youtube', scheme: 'youtube',
+    url: 'https://m.youtube.com'
+  },
+  { 
+    id: 'twitter', icon: '𝕏', cls: 'twitter', 
+    package: 'com.twitter.android', scheme: 'twitter',
+    url: 'https://twitter.com/messages'
+  }
+];
 
   // ===== State =====
   let lang = localStorage.getItem('lang') || 'am';
@@ -432,12 +460,35 @@
   }
 
   // ===== Navigation =====
-  function openApp(id) {
-    const app = apps.find(x => x.id === id);
-    if (!app) return;
+function openApp(id) {
+  const app = apps.find(x => x.id === id);
+  if (!app) return;
 
-    currentApp = app;
-    render();
+  // Android: open native app with intent://
+  if (/android/i.test(navigator.userAgent)) {
+    const intentUrl = 'intent://#Intent;scheme=' + app.scheme + 
+      ';package=' + app.package + 
+      ';S.browser_fallback_url=' + encodeURIComponent(app.url) + 
+      ';end';
+    window.location.href = intentUrl;
+    return;
+  }
+
+  // iOS: try URL scheme with timer fallback
+  if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+    const start = Date.now();
+    window.location.href = app.scheme + '://';
+    setTimeout(() => {
+      if (Date.now() - start < 2000 && !document.hidden) {
+        window.location.href = app.url;
+      }
+    }, 1200);
+    return;
+  }
+
+  // Desktop: open web version in new tab
+  window.open(app.url, '_blank');
+}
 
     // Show viewer, hide home
     document.getElementById('homeView').style.display = 'none';
