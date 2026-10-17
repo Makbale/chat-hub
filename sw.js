@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chathub-v3';
+const CACHE_NAME = 'chathub-v4';
 const URLS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
