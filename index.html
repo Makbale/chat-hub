@@ -39,21 +39,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  header .back {
-    background: rgba(255,255,255,0.2);
-    border: none;
-    color: white;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    font-size: 18px;
-    cursor: pointer;
-    display: none;
-    flex-shrink: 0;
-  }
-  header .back.show { display: block; }
-  header .back:active { background: rgba(255,255,255,0.35); }
-
   header .actions { display: flex; gap: 6px; flex-shrink: 0; }
   header button.icon-btn {
     background: rgba(255,255,255,0.2);
@@ -76,6 +61,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
+    padding-bottom: calc(65px + env(safe-area-inset-bottom)); /* Space for bottom bar */
   }
 
   /* Home view */
@@ -143,71 +129,23 @@
   .youtube { background: linear-gradient(135deg, #ff0000, #cc0000); }
   .twitter { background: linear-gradient(135deg, #000000, #333333); }
 
-  /* Viewer (app iframe) */
-  .viewer {
-    flex: 1;
-    display: none;
-    flex-direction: column;
-    background: white;
-  }
-  .viewer.open { display: flex; }
-
-  .viewer .loading {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 16px;
-    color: #666;
-  }
-  .viewer .spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid #eee;
-    border-top-color: #0088cc;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .viewer .blocked {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 16px;
-    padding: 24px;
-    text-align: center;
-  }
-  .viewer .blocked .bIcon { font-size: 64px; }
-  .viewer .blocked .msg { font-size: 15px; color: #666; line-height: 1.6; }
-  .viewer .blocked button {
-    background: #0088cc;
-    color: white;
-    border: none;
-    padding: 14px 28px;
-    border-radius: 24px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  .viewer iframe { flex: 1; width: 100%; border: none; background: white; }
-
   /* ===== Bottom bar ===== */
   .bottom-bar {
     display: flex;
     background: white;
     border-top: 1px solid #e0e0e0;
-    flex-shrink: 0;
     padding-bottom: env(safe-area-inset-bottom);
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
-    box-shadow: 0 -2px 8px rgba(0,0,0,0.05);
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 999;
+    height: 65px;
   }
   body.dark .bottom-bar {
     background: #1a1a1a;
@@ -217,14 +155,15 @@
 
   .nav-item {
     flex: 1;
-    min-width: 56px;
-    padding: 8px 4px 10px;
+    min-width: 60px;
+    padding: 8px 4px;
     background: none;
     border: none;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 3px;
+    justify-content: center;
+    gap: 4px;
     cursor: pointer;
     font-family: inherit;
     position: relative;
@@ -232,11 +171,7 @@
     transition: color 0.2s;
   }
   body.dark .nav-item { color: #666; }
-  .nav-item .nav-icon {
-    font-size: 22px;
-    line-height: 1;
-    transition: transform 0.2s;
-  }
+  .nav-item .nav-icon { font-size: 22px; line-height: 1; }
   .nav-item .nav-label {
     font-size: 9px;
     font-weight: 600;
@@ -245,19 +180,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 100%;
-  }
-  .nav-item.active { color: #0088cc; }
-  .nav-item.active .nav-icon { transform: scale(1.15); }
-  .nav-item.active::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 24px;
-    height: 3px;
-    background: #0088cc;
-    border-radius: 0 0 3px 3px;
   }
   .nav-item:active { background: rgba(0,0,0,0.05); }
   body.dark .nav-item:active { background: rgba(255,255,255,0.05); }
@@ -274,7 +196,6 @@
 <body>
 
 <header>
-  <button class="back" id="backBtn" onclick="goHome()">←</button>
   <h1 id="appTitle">💬 Chat Hub</h1>
   <div class="actions">
     <button class="icon-btn" id="langBtn" onclick="toggleLang()">EN</button>
@@ -290,20 +211,6 @@
     </div>
     <div class="grid" id="appGrid"></div>
   </div>
-
-  <!-- Viewer -->
-  <div class="viewer" id="viewerView">
-    <div class="loading" id="viewerLoading">
-      <div class="spinner"></div>
-      <div id="loadingText">በመጫን ላይ...</div>
-    </div>
-    <div class="blocked" id="viewerBlocked" style="display:none;">
-      <div class="bIcon">🔒</div>
-      <div class="msg" id="blockedMsg"></div>
-      <button onclick="openExternal()" id="blockedBtn">ክፈት</button>
-    </div>
-    <iframe id="viewerFrame" style="display:none;"></iframe>
-  </div>
 </div>
 
 <!-- Bottom bar (always visible) -->
@@ -315,9 +222,6 @@
     am: {
       appTitle: 'Chat Hub',
       search: '🔍 ፈልግ...',
-      loading: 'በመጫን ላይ...',
-      blockedMsg: 'ይህ አፕ በአፑ ውስጥ አይከፈትም። እባክህ ከታች ያለውን ቁልፍ ተጭነህ ክፈተው።',
-      openNow: '↗ አሁን ክፈት',
       noResult: '😕 ምንም አልተገኘም',
       langLabel: 'EN',
       apps: {
@@ -333,9 +237,6 @@
     en: {
       appTitle: 'Chat Hub',
       search: '🔍 Search...',
-      loading: 'Loading...',
-      blockedMsg: 'This app does not allow opening inside another app. Please tap the button below to open it.',
-      openNow: '↗ Open Now',
       noResult: '😕 Nothing found',
       langLabel: 'አማ',
       apps: {
@@ -350,61 +251,54 @@
     }
   };
 
-  // ===== Apps =====
-const apps = [
-  { 
-    id: 'telegram', icon: '✈️', cls: 'telegram', 
-    package: 'org.telegram.messenger', scheme: 'tg',
-    url: 'https://web.telegram.org/k/'
-  },
-  { 
-    id: 'instagram', icon: '📷', cls: 'instagram', 
-    package: 'com.instagram.android', scheme: 'instagram',
-    url: 'https://www.instagram.com/direct/inbox/'
-  },
-  { 
-    id: 'whatsapp', icon: '💚', cls: 'whatsapp', 
-    package: 'com.whatsapp', scheme: 'whatsapp',
-    url: 'https://web.whatsapp.com'
-  },
-  { 
-    id: 'messenger', icon: '💬', cls: 'messenger', 
-    package: 'com.facebook.orca', scheme: 'fb-messenger',
-    url: 'https://www.messenger.com'
-  },
-  { 
-    id: 'tiktok', icon: '🎵', cls: 'tiktok', 
-    package: 'com.zhiliaoapp.musically', scheme: 'snssdk1233',
-    url: 'https://www.tiktok.com/messages'
-  },
-  { 
-    id: 'youtube', icon: '▶️', cls: 'youtube', 
-    package: 'com.google.android.youtube', scheme: 'youtube',
-    url: 'https://m.youtube.com'
-  },
-  { 
-    id: 'twitter', icon: '𝕏', cls: 'twitter', 
-    package: 'com.twitter.android', scheme: 'twitter',
-    url: 'https://twitter.com/messages'
-  }
-];
+  // ===== Apps with Native App Links (Intent / URL Scheme) =====
+  const apps = [
+    { 
+      id: 'telegram', icon: '✈️', cls: 'telegram', 
+      package: 'org.telegram.messenger', scheme: 'tg',
+      url: 'https://web.telegram.org/k/' 
+    },
+    { 
+      id: 'instagram', icon: '📷', cls: 'instagram', 
+      package: 'com.instagram.android', scheme: 'instagram',
+      url: 'https://www.instagram.com/direct/inbox/' 
+    },
+    { 
+      id: 'whatsapp', icon: '💚', cls: 'whatsapp', 
+      package: 'com.whatsapp', scheme: 'whatsapp',
+      url: 'https://web.whatsapp.com' 
+    },
+    { 
+      id: 'messenger', icon: '💬', cls: 'messenger', 
+      package: 'com.facebook.orca', scheme: 'fb-messenger',
+      url: 'https://www.messenger.com' 
+    },
+    { 
+      id: 'tiktok', icon: '🎵', cls: 'tiktok', 
+      package: 'com.zhiliaoapp.musically', scheme: 'snssdk1233',
+      url: 'https://www.tiktok.com/messages' 
+    },
+    { 
+      id: 'youtube', icon: '▶️', cls: 'youtube', 
+      package: 'com.google.android.youtube', scheme: 'vnd.youtube',
+      url: 'https://m.youtube.com' 
+    },
+    { 
+      id: 'twitter', icon: '𝕏', cls: 'twitter', 
+      package: 'com.twitter.android', scheme: 'twitter',
+      url: 'https://twitter.com/messages' 
+    }
+  ];
 
   // ===== State =====
   let lang = localStorage.getItem('lang') || 'am';
-  let currentApp = null;
-  let iframeTimer = null;
 
   // ===== Render =====
   function render() {
     const t = i18n[lang];
-    document.getElementById('appTitle').textContent = currentApp
-      ? '💬 ' + t.apps[currentApp.id].name
-      : '💬 ' + t.appTitle;
+    document.getElementById('appTitle').textContent = '💬 ' + t.appTitle;
     document.getElementById('search').placeholder = t.search;
     document.getElementById('langBtn').textContent = t.langLabel;
-    document.getElementById('loadingText').textContent = t.loading;
-    document.getElementById('blockedMsg').textContent = t.blockedMsg;
-    document.getElementById('blockedBtn').textContent = t.openNow;
 
     // Grid
     const grid = document.getElementById('appGrid');
@@ -423,9 +317,8 @@ const apps = [
     const bar = document.getElementById('bottomBar');
     bar.innerHTML = apps.map(a => {
       const app = t.apps[a.id];
-      const isActive = currentApp && currentApp.id === a.id;
       return `
-        <button class="nav-item ${isActive ? 'active' : ''}" onclick="openApp('${a.id}')">
+        <button class="nav-item" onclick="openApp('${a.id}')">
           <span class="nav-icon">${a.icon}</span>
           <span class="nav-label">${app.name}</span>
         </button>
@@ -437,6 +330,7 @@ const apps = [
     const q = document.getElementById('search').value.toLowerCase().trim();
     const list = document.querySelectorAll('.app-card');
     let visible = 0;
+    
     list.forEach(a => {
       if (a.dataset.name.includes(q)) {
         a.style.display = '';
@@ -459,101 +353,36 @@ const apps = [
     }
   }
 
-  // ===== Navigation =====
-function openApp(id) {
-  const app = apps.find(x => x.id === id);
-  if (!app) return;
+  // ===== Native App Launcher =====
+  function openApp(id) {
+    const app = apps.find(x => x.id === id);
+    if (!app) return;
 
-  // Android: open native app with intent://
-  if (/android/i.test(navigator.userAgent)) {
-    const intentUrl = 'intent://#Intent;scheme=' + app.scheme + 
-      ';package=' + app.package + 
-      ';S.browser_fallback_url=' + encodeURIComponent(app.url) + 
-      ';end';
-    window.location.href = intentUrl;
-    return;
-  }
+    const isAndroid = /android/i.test(navigator.userAgent);
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
-  // iOS: try URL scheme with timer fallback
-  if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
-    const start = Date.now();
-    window.location.href = app.scheme + '://';
-    setTimeout(() => {
-      if (Date.now() - start < 2000 && !document.hidden) {
-        window.location.href = app.url;
-      }
-    }, 1200);
-    return;
-  }
-
-  // Desktop: open web version in new tab
-  window.open(app.url, '_blank');
-}
-
-    // Show viewer, hide home
-    document.getElementById('homeView').style.display = 'none';
-    document.getElementById('viewerView').classList.add('open');
-    document.getElementById('backBtn').classList.add('show');
-
-    // Show loading
-    document.getElementById('viewerLoading').style.display = 'flex';
-    document.getElementById('viewerBlocked').style.display = 'none';
-    document.getElementById('viewerFrame').style.display = 'none';
-
-    // Reset iframe
-    const frame = document.getElementById('viewerFrame');
-    frame.src = 'about:blank';
-
-    clearTimeout(iframeTimer);
-
-    setTimeout(() => {
-      try {
-        frame.src = app.url;
-      } catch (e) {
-        document.getElementById('viewerLoading').style.display = 'none';
-        document.getElementById('viewerBlocked').style.display = 'flex';
-      }
-    }, 50);
-
-    // If blocked after 4 seconds, show blocked message
-    iframeTimer = setTimeout(() => {
-      document.getElementById('viewerLoading').style.display = 'none';
-      document.getElementById('viewerBlocked').style.display = 'flex';
-    }, 4000);
-
-    frame.onload = () => {
-      clearTimeout(iframeTimer);
+    if (isAndroid) {
+      // Android Intent System (Opens Native App)
+      const intentUrl = 'intent://#Intent;scheme=' + app.scheme + 
+        ';package=' + app.package + 
+        ';S.browser_fallback_url=' + encodeURIComponent(app.url) + 
+        ';end';
+      window.location.href = intentUrl;
+    } 
+    else if (isIOS) {
+      // iOS URL Scheme (Opens Native App)
+      const start = Date.now();
+      window.location.href = app.scheme + '://';
       setTimeout(() => {
-        try {
-          const doc = frame.contentDocument || frame.contentWindow.document;
-          if (!doc || !doc.body || doc.body.innerHTML === '') {
-            document.getElementById('viewerLoading').style.display = 'none';
-            document.getElementById('viewerBlocked').style.display = 'flex';
-          } else {
-            document.getElementById('viewerLoading').style.display = 'none';
-            document.getElementById('viewerFrame').style.display = 'block';
-          }
-        } catch (e) {
-          document.getElementById('viewerLoading').style.display = 'none';
-          document.getElementById('viewerBlocked').style.display = 'flex';
+        // Fallback to web if app doesn't open
+        if (Date.now() - start < 2000 && !document.hidden) {
+          window.location.href = app.url;
         }
-      }, 400);
-    };
-  }
-
-  function goHome() {
-    clearTimeout(iframeTimer);
-    currentApp = null;
-    document.getElementById('homeView').style.display = 'flex';
-    document.getElementById('viewerView').classList.remove('open');
-    document.getElementById('backBtn').classList.remove('show');
-    document.getElementById('viewerFrame').src = 'about:blank';
-    render();
-  }
-
-  function openExternal() {
-    if (currentApp) {
-      window.open(currentApp.url, '_blank');
+      }, 1200);
+    } 
+    else {
+      // Desktop: open web version
+      window.open(app.url, '_blank');
     }
   }
 
